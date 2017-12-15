@@ -1,9 +1,9 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 
-const {app, closeServer, runServer} = require('../server');
-
 const should = chai.should();
+
+const {app, closeServer, runServer} = require('../server');
 
 chai.use(chaiHttp);
 
@@ -30,35 +30,36 @@ describe('Blog Posts', function() {
     });
   });
   it('should add an entry on POST', function() {
-    const newItem = {title: 'Trip to Easton', content: 'I leave LA on December 22', author: 'Laura Jodz'};
+    const newEntry = {title: 'Trip to Easton', content: 'I leave LA on December 22', author: 'Laura Jodz'};
+    const expectedKeys = ['id', 'publishDate'].concat(Object.keys(newEntry));
     return chai.request(app)
       .post('/blog-posts')
-      .send(newItem)
+      .send(newEntry)
       .then(function(res) {
         res.should.have.status(201);
         res.should.be.json;
         res.body.should.be.a('object');
-        res.body.should.include.keys('title', 'content', 'author');
-        res.body.id.should.not.be.null;
-        res.body.should.deep.equal(Object.assign(newItem, {id: res.body.id}));
+        res.body.should.have.all.keys(expectedKeys);
+        res.body.title.should.equal(newEntry.title);
+        res.body.content.should.equal(newEntry.content);
+        res.body.author.should.equal(newEntry.author)
       });
   });
   it('should update an entry on PUT', function() {
-    const updateData = {
-      title: 'Trip to Philly',
-      content: 'I arrive from Easton on December 25'};
     return chai.request(app)
-      .get('/blog-posts')
-      .then(function(res) {
-        updateData.id = res.body[0].id;
-        return chai.request(app)
-          .put(`/blog-posts/${updateData.id}`)
-          .send(updateData)
-      })
-      .then(function(res) {
-        res.should.have.status(204);
+    .get('/blog-posts')
+    .then(function(res) {
+      const updatedEntry = Object.assign(res.body[0], {
+        title: 'Trip to Philly',
+        content: 'I arrive from Easton on December 25'});
+      return chai.request(app)
+          .put(`/blog-posts/${res.body[0].id}`)
+          .send(updatedEntry)
+          .then(function(res) {
+            res.should.have.status(204);
+          });
       });
-  });
+    });
   it('should delete an entry on DELETE', function() {
     return chai.request(app)
       .get('/blog-posts')
